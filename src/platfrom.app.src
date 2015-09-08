@@ -1,13 +1,13 @@
 {application, platfrom,
- [{description, "An OTP application"}
- ,{vsn, "0.1.0"}
- ,{registered, []}
- ,{mod, {'platfrom_app', []}}
- ,{applications,
-   [kernel
-   ,stdlib
-   ,resource_discovery
-   ]}
- ,{env,[]}
- ,{modules, []}
- ]}.
+  [{description, "An OTP application"}
+    , {vsn, "0.1.0"}
+    , {registered, []}
+    , {mod, {'platfrom_app', []}}
+    , {applications,
+    [kernel
+      , stdlib
+      , resource_discovery
+    ]}
+    , {env, []}
+    , {modules, []}
+  ]}.

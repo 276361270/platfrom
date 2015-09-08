@@ -31,20 +31,20 @@
 
 -export([start/0, cluster/1]).
 
--export([create_table/2, copy_table/1]). 
+-export([create_table/2, copy_table/1]).
 
 start() ->
-    case init_schema() of
-        ok -> 
-            ok;
-        {error, {_Node, {already_exists, _Node}}} ->
-            ok;
-        {error, Reason} -> 
-            lager:error("mnesia init_schema error: ~p", [Reason])
-    end,
-    ok = mnesia:start(),
-    init_tables(),
-    wait_for_tables().
+  case init_schema() of
+    ok ->
+      ok;
+    {error, {_Node, {already_exists, _Node}}} ->
+      ok;
+    {error, Reason} ->
+      lager:error("mnesia init_schema error: ~p", [Reason])
+  end,
+  ok = mnesia:start(),
+  init_tables(),
+  wait_for_tables().
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -54,13 +54,13 @@ start() ->
 %% @end
 %%------------------------------------------------------------------------------
 init_schema() ->
-    case mnesia:system_info(extra_db_nodes) of
-        [] ->
-            %% create schema
-            mnesia:create_schema([node()]);
-        __ ->
-            ok
-    end.
+  case mnesia:system_info(extra_db_nodes) of
+    [] ->
+      %% create schema
+      mnesia:create_schema([node()]);
+    __ ->
+      ok
+  end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -70,12 +70,12 @@ init_schema() ->
 %% @end
 %%------------------------------------------------------------------------------
 init_tables() ->
-    case mnesia:system_info(extra_db_nodes) of
-        [] ->
-            create_tables();
-        _ ->
-            copy_tables()
-    end.
+  case mnesia:system_info(extra_db_nodes) of
+    [] ->
+      create_tables();
+    _ ->
+      copy_tables()
+  end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -85,14 +85,14 @@ init_tables() ->
 %% @end
 %%------------------------------------------------------------------------------
 create_tables() ->
-    platfrom_util:apply_module_attributes(boot_mnesia).
+  platfrom_util:apply_module_attributes(boot_mnesia).
 
 create_table(Table, Attrs) ->
-    case mnesia:create_table(Table, Attrs) of
-        {atomic, ok} -> ok;
-        {aborted, {already_exists, Table}} -> ok;
-        Error -> Error
-    end.
+  case mnesia:create_table(Table, Attrs) of
+    {atomic, ok} -> ok;
+    {aborted, {already_exists, Table}} -> ok;
+    Error -> Error
+  end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -102,14 +102,14 @@ create_table(Table, Attrs) ->
 %% @end
 %%------------------------------------------------------------------------------
 copy_tables() ->
-    platfrom_util:apply_module_attributes(copy_mnesia).
+  platfrom_util:apply_module_attributes(copy_mnesia).
 
 copy_table(Table) ->
-    case mnesia:add_table_copy(Table, node(), ram_copies) of
-        {atomic, ok} -> ok;
-        {aborted, {already_exists, Table, _Node}} -> ok;
-        {aborted, Error} -> Error
-    end.
+  case mnesia:add_table_copy(Table, node(), ram_copies) of
+    {atomic, ok} -> ok;
+    {aborted, {already_exists, Table, _Node}} -> ok;
+    {aborted, Error} -> Error
+  end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -118,10 +118,10 @@ copy_table(Table) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
-wait_for_tables() -> 
-    %%TODO: is not right?
-    %%lager:info("local_tables: ~p", [mnesia:system_info(local_tables)]),
-    mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
+wait_for_tables() ->
+  %%TODO: is not right?
+  %%lager:info("local_tables: ~p", [mnesia:system_info(local_tables)]),
+  mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -131,38 +131,38 @@ wait_for_tables() ->
 %% @end
 %%------------------------------------------------------------------------------
 cluster(Node) ->
-    %% stop mnesia 
-    mnesia:stop(),
-    ok = wait_for_mnesia(stop),
-    %% delete mnesia
-    ok = mnesia:delete_schema([node()]),
-    %% start mnesia
-    ok = mnesia:start(),
-    %% connect with extra_db_nodes
-    case mnesia:change_config(extra_db_nodes, [Node]) of
-        {ok, []} -> 
-            throw({error, failed_to_connect_extra_db_nodes});
-        {ok, Nodes} ->
-            case lists:member(Node, Nodes) of
-                true -> lager:info("mnesia connected to extra_db_node '~s' successfully!", [Node]);
-                false -> lager:error("mnesia failed to connect extra_db_node '~s'!", [Node])
-            end
+  %% stop mnesia
+  mnesia:stop(),
+  ok = wait_for_mnesia(stop),
+  %% delete mnesia
+  ok = mnesia:delete_schema([node()]),
+  %% start mnesia
+  ok = mnesia:start(),
+  %% connect with extra_db_nodes
+  case mnesia:change_config(extra_db_nodes, [Node]) of
+    {ok, []} ->
+      throw({error, failed_to_connect_extra_db_nodes});
+    {ok, Nodes} ->
+      case lists:member(Node, Nodes) of
+        true -> lager:info("mnesia connected to extra_db_node '~s' successfully!", [Node]);
+        false -> lager:error("mnesia failed to connect extra_db_node '~s'!", [Node])
+      end
 
-    end,
-    copy_tables(),
-    wait_for_tables().
- 
+  end,
+  copy_tables(),
+  wait_for_tables().
+
 wait_for_mnesia(stop) ->
-    case mnesia:system_info(is_running) of
-        no ->
-            ok;
-        stopping ->
-            lager:info("Waiting for mnesia to stop..."),
-            timer:sleep(1000),
-            wait_for_mnesia(stop);
-        yes ->
-            {error, mnesia_unexpectedly_running};
-        starting ->
-            {error, mnesia_unexpectedly_starting}
-    end.
+  case mnesia:system_info(is_running) of
+    no ->
+      ok;
+    stopping ->
+      lager:info("Waiting for mnesia to stop..."),
+      timer:sleep(1000),
+      wait_for_mnesia(stop);
+    yes ->
+      {error, mnesia_unexpectedly_running};
+    starting ->
+      {error, mnesia_unexpectedly_starting}
+  end.
 
