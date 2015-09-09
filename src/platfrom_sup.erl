@@ -15,6 +15,9 @@
 
 -define(SERVER, ?MODULE).
 
+%% Helper macro for declaring children of supervisor
+-define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 2000, Type, [I]}).
+
 %%====================================================================
 %% API functions
 %%====================================================================
@@ -28,7 +31,8 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-  {ok, {{one_for_all, 0, 1}, []}}.
+  Children = [?CHILD(platfrom_server,worker)],
+  {ok, {{one_for_all, 0, 1}, Children}}.
 
 %%====================================================================
 %% Internal functions
