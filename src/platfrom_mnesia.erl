@@ -21,7 +21,7 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc
 %%% emqttd mnesia.
-%%%
+%%% copy from emqttd nad modify
 %%% @end
 %%%-----------------------------------------------------------------------------
 
@@ -29,9 +29,15 @@
 
 -author('feng@emqtt.io').
 
--export([start/0, cluster/1]).
+-include("platfrom.hrl").
+
+%%-include("emqttd.hrl").
+
+-export([start/0]).
 
 -export([create_table/2, copy_table/1]).
+
+-define(WAIT_FOR_TABLES, 10000).
 
 start() ->
   case init_schema() of
@@ -44,7 +50,7 @@ start() ->
   end,
   ok = mnesia:start(),
   init_tables(),
-  wait_for_tables().
+  add_extra_nodes(nodes()).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -72,7 +78,8 @@ init_schema() ->
 init_tables() ->
   case mnesia:system_info(extra_db_nodes) of
     [] ->
-      create_tables();
+      create_tables(),
+      create();
     _ ->
       copy_tables()
   end.
@@ -111,58 +118,18 @@ copy_table(Table) ->
     {aborted, Error} -> Error
   end.
 
-%%------------------------------------------------------------------------------
-%% @doc
-%% @private
-%% wait for tables.
-%%
-%% @end
-%%------------------------------------------------------------------------------
-wait_for_tables() ->
-  %%TODO: is not right?
-  %%lager:info("local_tables: ~p", [mnesia:system_info(local_tables)]),
-  mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
+create() ->
+  create_table(platfrom_room, [{attributes, record_info(fields, platfrom_room)}]).
 
-%%------------------------------------------------------------------------------
-%% @doc
-%% @private
-%% Simple cluster with another nodes.
-%%
-%% @end
-%%------------------------------------------------------------------------------
-cluster(Node) ->
-  %% stop mnesia
-  mnesia:stop(),
-  ok = wait_for_mnesia(stop),
-  %% delete mnesia
-  ok = mnesia:delete_schema([node()]),
-  %% start mnesia
-  ok = mnesia:start(),
-  %% connect with extra_db_nodes
+copy() ->
+  copy_table(platfrom_room).
+
+add_extra_nodes([Node | T]) ->
   case mnesia:change_config(extra_db_nodes, [Node]) of
-    {ok, []} ->
-      throw({error, failed_to_connect_extra_db_nodes});
-    {ok, Nodes} ->
-      case lists:member(Node, Nodes) of
-        true -> lager:info("mnesia connected to extra_db_node '~s' successfully!", [Node]);
-        false -> lager:error("mnesia failed to connect extra_db_node '~s'!", [Node])
-      end
-
-  end,
-  copy_tables(),
-  wait_for_tables().
-
-wait_for_mnesia(stop) ->
-  case mnesia:system_info(is_running) of
-    no ->
-      ok;
-    stopping ->
-      lager:info("Waiting for mnesia to stop..."),
-      timer:sleep(1000),
-      wait_for_mnesia(stop);
-    yes ->
-      {error, mnesia_unexpectedly_running};
-    starting ->
-      {error, mnesia_unexpectedly_starting}
+    {ok, [Node]} ->
+      copy(),
+      Tables = mnesia:system_info(tables),
+      mnesia:wait_for_tables(Tables, ?WAIT_FOR_TABLES);
+    _ ->
+      add_extra_nodes(T)
   end.
-

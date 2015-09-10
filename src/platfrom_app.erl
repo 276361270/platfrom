@@ -23,7 +23,7 @@ start() ->
 start(_StartType, _StartArgs) ->
   case platfrom_util:start_app_deps(?App) of
     ok ->
-      platfrom_sup:start_link();
+       platfrom_mnesia:start();
     _Other ->
       error_logger:info_msg("resource_discovery start error")
   end.
