@@ -58,28 +58,19 @@ start() ->
 %%------------------------------------------------------------------------------
 init_schema() ->
   mnesia:stop(),
-%%   case mnesia:system_info(extra_db_nodes) of
-%%     [] ->
-%%       %% create schema
-%%       mnesia:create_schema([node()]),
-%%       ok = mnesia:start(),
-%%       error_logger:info_msg("mnesia init_schema error: ~p", [nodes()]),
-%%       create();
-%%     __ ->
-      case length(nodes()) > 0 of%%当前不是第一个节点 需要从其余节点复制数据 需要删除当前 schema
-        true ->
-          error_logger:info_msg("start mult mnesia  node: ~p", [nodes()]),
-          mnesia:delete_schema(node()),
-          mnesia:start(),
-          add_extra_nodes(nodes());
-        false ->
-          error_logger:info_msg("start one mnesia node: ~p", [nodes()]),
-          mnesia:create_schema([node()]),
-          mnesia:start(),
-          create(),
-          ok
-      end.
-%%   end.
+  case length(nodes()) > 0 of%%当前不是第一个节点 需要从其余节点复制数据 需要删除当前 schema
+    true ->
+      error_logger:info_msg("start mult mnesia  node: ~p", [nodes()]),
+      mnesia:delete_schema(node()),
+      mnesia:start(),
+      add_extra_nodes(nodes());
+    false ->
+      error_logger:info_msg("start one mnesia node: ~p", [nodes()]),
+      mnesia:create_schema([node()]),
+      mnesia:start(),
+      create(),
+      ok
+  end.
 
 %%------------------------------------------------------------------------------
 %% @doc
