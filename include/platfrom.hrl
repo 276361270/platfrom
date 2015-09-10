@@ -8,4 +8,4 @@
 %%%-------------------------------------------------------------------
 -author("apple").
 
--record(platfrom_room,{room_pid,room_name,start_time,create_user,create_node,room_max_user}).
+-record(platfrom_room,{room_name="undefined",room_pid="undefined",start_time="undefined",create_user="undefined",create_node=node(),room_max_user=100}).

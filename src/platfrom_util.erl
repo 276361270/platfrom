@@ -28,72 +28,41 @@
 
 -author("Feng Lee <feng@emqtt.io>").
 
--export([apply_module_attributes/1,
-         all_module_attributes/1,
-         cancel_timer/1,
-         now_to_secs/0, now_to_secs/1]).
+-export([
+  cancel_timer/1,
+  now_to_secs/0, now_to_secs/1, start_app_deps/1]).
 
 -export([integer_to_binary/1]).
 
-%% only {F, Args}...
-apply_module_attributes(Name) ->
-    [{Module, [apply(Module, F, Args) || {F, Args} <- Attrs]} || 
-        {_App, Module, Attrs} <- all_module_attributes(Name)].
-
-%% copy from rabbit_misc.erl
-all_module_attributes(Name) ->
-    Targets =
-        lists:usort(
-          lists:append(
-            [[{App, Module} || Module <- Modules] ||
-                {App, _, _}   <- ignore_lib_apps(application:loaded_applications()),
-                {ok, Modules} <- [application:get_key(App, modules)]])),
-    lists:foldl(
-      fun ({App, Module}, Acc) ->
-              case lists:append([Atts || {N, Atts} <- module_attributes(Module),
-                                         N =:= Name]) of
-                  []   -> Acc;
-                  Atts -> [{App, Module, Atts} | Acc]
-              end
-      end, [], Targets).
-
-%% copy from rabbit_misc.erl
-module_attributes(Module) ->
-    case catch Module:module_info(attributes) of
-        {'EXIT', {undef, [{Module, module_info, _} | _]}} ->
-            [];
-        {'EXIT', Reason} ->
-            exit(Reason);
-        V ->
-            V
-    end.
-
-ignore_lib_apps(Apps) ->
-    LibApps = [kernel, stdlib, sasl,
-               syntax_tools, ssl, crypto,
-               mnesia, os_mon, inets,
-               goldrush, lager, gproc,
-               runtime_tools, snmp, otp_mibs,
-               public_key, asn1, ssh,
-               common_test, observer, webtool,
-               xmerl, tools, test_server,
-               compiler, debugger, eunit,
-               et, gen_logger, wx,
-               hipe, esockd, mochiweb],
-    [App || App = {Name, _, _} <- Apps, not lists:member(Name, LibApps)].
-
-
-cancel_timer(undefined) -> 
-	undefined;
-cancel_timer(Ref) -> 
-	catch erlang:cancel_timer(Ref).
+cancel_timer(undefined) ->
+  undefined;
+cancel_timer(Ref) ->
+  catch erlang:cancel_timer(Ref).
 
 integer_to_binary(I) when is_integer(I) ->
-    list_to_binary(integer_to_list(I)).
+  list_to_binary(integer_to_list(I)).
 
 now_to_secs() ->
-    now_to_secs(os:timestamp()).
+  now_to_secs(os:timestamp()).
 
 now_to_secs({MegaSecs, Secs, _MicroSecs}) ->
-    MegaSecs * 1000000 + Secs.
+  MegaSecs * 1000000 + Secs.
+
+%%启动依赖项
+%% copy from riak_core_util
+%% @spec start_app_deps(App :: atom()) -> ok
+%% @doc Start depedent applications of App.
+start_app_deps(App) ->
+  {ok, DepApps} = application:get_key(App, applications),
+  _ = [ensure_started(A) || A <- DepApps],
+  ok.
+
+ensure_started(App) ->
+  case application:start(App) of
+    ok ->
+      error_logger:info_msg("Module is :~p,Line is :~p Message is  : ~p", [?MODULE, ?LINE, App]),
+      ok;
+    {error, {already_started, App}} ->
+      ok
+  end.
 

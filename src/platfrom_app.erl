@@ -23,7 +23,7 @@ start() ->
 start(_StartType, _StartArgs) ->
   case platfrom_util:start_app_deps(?App) of
     ok ->
-       platfrom_mnesia:start();
+      platfrom_sup:start_link();
     _Other ->
       error_logger:info_msg("resource_discovery start error")
   end.
@@ -31,7 +31,3 @@ start(_StartType, _StartArgs) ->
 %%--------------------------------------------------------------------
 stop(_State) ->
   ok.
-
-%%====================================================================
-%% Internal functions
-%%====================================================================

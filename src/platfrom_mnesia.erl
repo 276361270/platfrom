@@ -31,13 +31,12 @@
 
 -include("platfrom.hrl").
 
-%%-include("emqttd.hrl").
-
 -export([start/0]).
 
 -export([create_table/2, copy_table/1]).
 
 -define(WAIT_FOR_TABLES, 10000).
+-compile(export_all).
 
 start() ->
   case init_schema() of
@@ -46,11 +45,9 @@ start() ->
     {error, {_Node, {already_exists, _Node}}} ->
       ok;
     {error, Reason} ->
-      lager:error("mnesia init_schema error: ~p", [Reason])
-  end,
-  ok = mnesia:start(),
-  init_tables(),
-  add_extra_nodes(nodes()).
+      error_logger:info_msg("mnesia init_schema error: ~p", [Reason])
+  end.
+
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -60,29 +57,29 @@ start() ->
 %% @end
 %%------------------------------------------------------------------------------
 init_schema() ->
-  case mnesia:system_info(extra_db_nodes) of
-    [] ->
-      %% create schema
-      mnesia:create_schema([node()]);
-    __ ->
-      ok
-  end.
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @private
-%% init mnesia tables.
-%%
-%% @end
-%%------------------------------------------------------------------------------
-init_tables() ->
-  case mnesia:system_info(extra_db_nodes) of
-    [] ->
-      create_tables(),
-      create();
-    _ ->
-      copy_tables()
-  end.
+  mnesia:stop(),
+%%   case mnesia:system_info(extra_db_nodes) of
+%%     [] ->
+%%       %% create schema
+%%       mnesia:create_schema([node()]),
+%%       ok = mnesia:start(),
+%%       error_logger:info_msg("mnesia init_schema error: ~p", [nodes()]),
+%%       create();
+%%     __ ->
+      case length(nodes()) > 0 of%%当前不是第一个节点 需要从其余节点复制数据 需要删除当前 schema
+        true ->
+          error_logger:info_msg("start mult mnesia  node: ~p", [nodes()]),
+          mnesia:delete_schema(node()),
+          mnesia:start(),
+          add_extra_nodes(nodes());
+        false ->
+          error_logger:info_msg("start one mnesia node: ~p", [nodes()]),
+          mnesia:create_schema([node()]),
+          mnesia:start(),
+          create(),
+          ok
+      end.
+%%   end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -91,9 +88,6 @@ init_tables() ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
-create_tables() ->
-  platfrom_util:apply_module_attributes(boot_mnesia).
-
 create_table(Table, Attrs) ->
   case mnesia:create_table(Table, Attrs) of
     {atomic, ok} -> ok;
@@ -108,9 +102,6 @@ create_table(Table, Attrs) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
-copy_tables() ->
-  platfrom_util:apply_module_attributes(copy_mnesia).
-
 copy_table(Table) ->
   case mnesia:add_table_copy(Table, node(), ram_copies) of
     {atomic, ok} -> ok;
@@ -119,17 +110,24 @@ copy_table(Table) ->
   end.
 
 create() ->
-  create_table(platfrom_room, [{attributes, record_info(fields, platfrom_room)}]).
+  create_table(platfrom_room, [{disc_copies, [node()]}, {attributes, record_info(fields, platfrom_room)}]).
 
 copy() ->
+  copy_table(schema),
   copy_table(platfrom_room).
 
+
 add_extra_nodes([Node | T]) ->
+  error_logger:info_msg("add_extra_nodes ~p~n", [Node]),
   case mnesia:change_config(extra_db_nodes, [Node]) of
     {ok, [Node]} ->
+      error_logger:info_msg("add_extra_nodes copy ~p~n", [Node]),
       copy(),
       Tables = mnesia:system_info(tables),
       mnesia:wait_for_tables(Tables, ?WAIT_FOR_TABLES);
     _ ->
       add_extra_nodes(T)
   end.
+
+test() ->
+  mnesia:dirty_write(#platfrom_room{room_name = "test", room_pid = self(), room_max_user = 100}).
