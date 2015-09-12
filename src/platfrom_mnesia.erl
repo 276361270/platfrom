@@ -119,6 +119,3 @@ add_extra_nodes([Node | T]) ->
     _ ->
       add_extra_nodes(T)
   end.
-
-test() ->
-  mnesia:dirty_write(#platfrom_room{room_name = "test", room_pid = self(), room_max_user = 100}).
