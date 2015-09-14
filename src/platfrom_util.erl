@@ -30,17 +30,12 @@
 
 -export([
   cancel_timer/1,
-  now_to_secs/0, now_to_secs/1, start_app_deps/1]).
-
--export([integer_to_binary/1]).
+  now_to_secs/0, now_to_secs/1, start_app_deps/1, sys_information/0]).
 
 cancel_timer(undefined) ->
   undefined;
 cancel_timer(Ref) ->
   catch erlang:cancel_timer(Ref).
-
-integer_to_binary(I) when is_integer(I) ->
-  list_to_binary(integer_to_list(I)).
 
 now_to_secs() ->
   now_to_secs(os:timestamp()).
@@ -65,4 +60,7 @@ ensure_started(App) ->
     {error, {already_started, App}} ->
       ok
   end.
+sys_information() ->
+  system_information:to_file("systeminfo.txt").
+
 
