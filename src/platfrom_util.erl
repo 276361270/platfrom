@@ -64,9 +64,8 @@ sys_information() ->
   system_information:to_file("systeminfo.txt").
 
 run_time_diff(Fun) ->
-  statistics(time_diff),
+  statistics(wall_clock),
   Fun(),
-  {_, Time} = statistics(wall_clock),
-  {ok, Time}.
+  statistics(wall_clock).
 
 
