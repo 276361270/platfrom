@@ -30,7 +30,7 @@
 
 -export([
   cancel_timer/1,
-  now_to_secs/0, now_to_secs/1, start_app_deps/1, sys_information/0]).
+  now_to_secs/0, now_to_secs/1, start_app_deps/1, sys_information/0, run_time_diff/1]).
 
 cancel_timer(undefined) ->
   undefined;
@@ -62,5 +62,11 @@ ensure_started(App) ->
   end.
 sys_information() ->
   system_information:to_file("systeminfo.txt").
+
+run_time_diff(Fun) ->
+  statistics(time_diff),
+  Fun(),
+  {_, Time} = statistics(wall_clock),
+  {ok, Time}.
 
 
