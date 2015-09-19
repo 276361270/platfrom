@@ -12,7 +12,7 @@
 -include("platfrom.hrl").
 
 %% API
--export([add_room/6, updata_room/6, delete_room/1, get_room/1]).
+-export([add_room/6, updata_room/6, delete_room/1, get_room/1, get_roompid/1]).
 
 %%--------------------------------------------------------------------
 %% 添加一个房间
@@ -40,4 +40,12 @@ delete_room(RoomName) ->
 %%--------------------------------------------------------------------
 get_room(RoomName) ->
   mnesia:dirty_read(platfrom_room, RoomName).
+
+get_roompid(RoomName) ->
+  case get_room(RoomName) of
+    [RoomRecord | _Any] ->
+      {ok, RoomRecord#platfrom_room.room_pid};
+    [] ->
+      {error, "the taget not exist"}
+  end.
 
